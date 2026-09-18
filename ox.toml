@@ -5,10 +5,8 @@
 name = "oxzoo-web3-vue"
 branch = "main"
 runtime = "node"
-framework = "generic"
 package_manager = "npm"
 port = 9116
-environment_file = "/etc/ox/projects/oxzoo-web3-vue.env"
 required_packages = ["nodejs"]
 
 [[apt_sources]]
