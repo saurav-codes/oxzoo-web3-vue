@@ -22,7 +22,7 @@ One variable, two paths:
 
 **`GREETING_TAG`**
 
-- **Runtime path (API):** `server.js` reads `process.env.GREETING_TAG` on every request to `/api/greeting` (`hello world oxzoo-web3-vue_` + `GREETING_TAG`). ox injects it from the app's `environment_file` at process start, so a restart with a new value changes the API line without a rebuild.
+- **Runtime path (API):** `server.js` reads `process.env.GREETING_TAG` on every request to `/api/greeting` (`hello world oxzoo-web3-vue_` + `GREETING_TAG`). ox injects it from the project's env file at process start, so a restart with a new value changes the API line without a rebuild.
 - **Build-time path (SPA):** `vite.config.js` sets `envPrefix: ["GREETING_", "VITE_"]`, so any `GREETING_*` variable in the build environment is exposed to `import.meta.env`. `src/App.vue` builds the greeting as a single template literal (`hello world oxzoo-web3-vue_${import.meta.env.GREETING_TAG}`), which Vite bakes into the bundle during `npm run build`. Changing the SPA value requires a redeploy.
 
 **`PORT`** is read by `server.js` with `process.env.PORT || 9116`; ox injects it from the platform, and the process command stays `node server.js` with no port in it.
@@ -31,7 +31,7 @@ One variable, two paths:
 
 ## Deploy with ox
 
-1. Add the repo in the ox dashboard: paste the clone URL `https://github.com/saurav-codes/oxzoo-web3-vue`.
+1. Add the repo in the ox dashboard: paste the clone URL `git@github.com:saurav-codes/oxzoo-web3-vue`.
 2. In the Environment editor, set `GREETING_TAG=w3-02`.
 3. Press **Deploy**. ox runs `npm install`, then `npm run build`, starts `node server.js`, and waits for `http://127.0.0.1:9116/health` to return `ok`.
 
