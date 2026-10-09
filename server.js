@@ -3,7 +3,7 @@ import express from "express";
 const app = express();
 
 app.get("/api/greeting", (_req, res) => {
-  // GREETING_TAG is read at runtime from the process environment (ox env file).
+  // GREETING_TAG is read at runtime from the process environment (ox sets it).
   res.type("text/plain").send(`hello world oxzoo-web3-vue_${process.env.GREETING_TAG}`);
 });
 

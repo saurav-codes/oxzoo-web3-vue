@@ -18,7 +18,7 @@ async function connect() {
   message.value = "";
   address.value = "";
   if (!window.ethereum) {
-    message.value = "No injected wallet found \u2014 install MetaMask to connect.";
+    message.value = "No injected wallet found. Install MetaMask to connect.";
     return;
   }
   connecting.value = true;

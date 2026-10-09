@@ -1,75 +1,88 @@
 # oxzoo-web3-vue
 
-Deployed with [ox](https://deploywithox.com): deploy a repo to your own server with one command, no Docker. [Docs](https://deploywithox.com/docs) · [Guide for this stack](https://deploywithox.com/docs/guides/node)
+Deployed with [ox](https://deploywithox.com): deploy a repo to your own server with one command, no Docker. [Docs](https://deploywithox.com/docs) · [Guide for this stack](https://deploywithox.com/docs/guides/vue)
 
-An official ox deploy example: a Vue 3 single-page dApp built with Vite, plus a tiny Express API, deployed to a single Ubuntu VPS by the [ox](https://deploywithox.com) control plane from one `ox.toml` manifest at the repo root. ox runs `npm install` and `npm run build`, serves `dist/` statically through nginx, and runs `node server.js` as a systemd process bound to `127.0.0.1:9116`, with only `/api` and `/health` proxied to it.
+An [ox](https://deploywithox.com) deploy example: a Vue 3 single-page dApp built with Vite, plus a tiny Express API, deployed to your own Ubuntu server. systemd runs Express, and Caddy serves the built SPA with an `index.html` fallback while sending only `/api` and `/health` to Express.
 
-A dApp needs very little on a server: the SPA is static files, the wallet stays client-side (MetaMask injects `window.ethereum` in the visitor's browser; no private key ever reaches the VPS), and the only server-side part is a tiny API that proves the deploy works end to end. The greeting renders without any wallet connected, so headless verification can check the deployment with nothing but curl.
+A dApp needs very little on a server: the SPA is static files, the wallet stays client-side (MetaMask injects `window.ethereum` in the visitor's browser; no private key ever reaches the server), and the only server-side part is a tiny API that proves the deploy works end to end. The greeting renders without any wallet connected, so the deploy can be checked with nothing but curl.
 
 ## Stack
 
 | Component | Version | Purpose |
 |---|---|---|
-| Vue | 3.5.42 | SPA framework, mounts `#app` from `index.html` |
-| Vite | 8.3.0 | dev server and production bundler, builds `dist/` |
-| @vitejs/plugin-vue | 6.0.9 | Vite plugin compiling `src/App.vue` |
-| ethers | 6.17.0 | wallet connection via `BrowserProvider` (ethers v6) |
-| Express | 5.2.1 | `GET /api/greeting` and `GET /health`, binds `127.0.0.1:9116` |
-| Package manager | npm | lockfile (`package-lock.json`) is committed |
-| Deploy | ox | `ox.toml` defines processes, frontend, domain |
+| Vue | 3.5.42 | SPA framework |
+| Vite | 8.3.0 | bundler, builds `dist/` |
+| ethers | 6.17.0 | wallet connection via `BrowserProvider` |
+| Express | 5.2.1 | `GET /api/greeting` and `GET /health` |
+| Runtime | Node.js 24 | ox's default; mise installs it |
+
+## ox.toml
+
+```toml
+# Express API + Vue 3 dApp SPA with npm. The wallet stays in the browser.
+
+[app]
+health = "/health"
+
+[static]
+dir = "dist"
+spa = true
+api = ["/api", "/health"]
+```
+
+ox detects `npm ci` from `package-lock.json`, and `npm run build` and `npm run start` (`node server.js`) from `package.json`.
 
 ## Environment flow
 
-One variable, two paths:
+1. **Run time (API):** `server.js` reads `process.env.GREETING_TAG` on every `GET /api/greeting`.
+2. **Build time (SPA):** `vite.config.js` sets `envPrefix: ["GREETING_", "VITE_"]`, so `src/App.vue` reads `import.meta.env.GREETING_TAG` and Vite bakes it into `dist/`.
 
-**`GREETING_TAG`**
-
-- **Runtime path (API):** `server.js` reads `process.env.GREETING_TAG` on every request to `/api/greeting` (`hello world oxzoo-web3-vue_` + `GREETING_TAG`). ox injects it from the project's env file at process start, so a restart with a new value changes the API line without a rebuild.
-- **Build-time path (SPA):** `vite.config.js` sets `envPrefix: ["GREETING_", "VITE_"]`, so any `GREETING_*` variable in the build environment is exposed to `import.meta.env`. `src/App.vue` builds the greeting as a single template literal (`hello world oxzoo-web3-vue_${import.meta.env.GREETING_TAG}`), which Vite bakes into the bundle during `npm run build`. Changing the SPA value requires a redeploy.
-
-**`PORT`** is read by `server.js` with `process.env.PORT || 9116`; ox injects it from the platform, and the process command stays `node server.js` with no port in it.
-
-**Set `GREETING_TAG` in the ox Environment editor BEFORE the first deploy.** The SPA value is baked during the deploy build step, so changing it later requires a redeploy; the API value updates as soon as the process restarts. `.env.example` documents the variable with a placeholder; real values live in the ox dashboard, never in git.
+ox sets your variables before the build, and changing one with `ox vars set` redeploys, which rebuilds the SPA.
 
 ## Deploy with ox
 
-1. Add the repo in the ox dashboard: paste the clone URL `git@github.com:saurav-codes/oxzoo-web3-vue`.
-2. In the Environment editor, set `GREETING_TAG=w3-02`.
-3. Press **Deploy**. ox runs `npm install`, then `npm run build`, starts `node server.js`, and waits for `http://127.0.0.1:9116/health` to return `ok`.
+```sh
+curl -fsSL https://deploywithox.com/install.sh | sh
+ox login
+ox new https://github.com/saurav-codes/oxzoo-web3-vue
+printf 'GREETING_TAG=demo\n' | ox review oxzoo-web3-vue --from-file - --wait
+```
 
-Expect the app at https://web3.oxzoo.sorv.dev.
+The plan, offline:
+
+```console
+$ ox check .
+ox check . (manifest: ox.toml)
+
+  app.start                  npm run start                                        detected:package.json
+  app.health                 /health                                              declared
+  static.dir                 dist                                                 declared
+  static.spa                 true                                                 declared
+  static.api                 /api, /health                                        declared
+  build.install              npm ci                                               detected:package-lock.json
+  build.commands[0]          npm run build                                        detected:package.json
+  tools.node                 24                                                   default
+
+  Provided by ox: PORT, HOST, OX_ENV, OX_PROJECT, OX_RELEASE, OX_DATA_DIR, PUBLIC_URL, PUBLIC_HOST
+  Set on the dashboard before the first deploy: GREETING_TAG
+
+Ready to deploy.
+```
 
 ## Expected output
 
-With `GREETING_TAG=w3-02`, visiting https://web3.oxzoo.sorv.dev shows:
-
 ```
 oxzoo-web3-vue
-hello world oxzoo-web3-vue_w3-02
+hello world oxzoo-web3-vue_<GREETING_TAG>
 [Connect Wallet]
 ```
 
-The same string comes from the API:
-
-```bash
-curl https://web3.oxzoo.sorv.dev/api/greeting
-# hello world oxzoo-web3-vue_w3-02
-```
-
-**The greeting renders without any wallet connected**, so headless verification (curl the API, or load the page with no browser wallet) sees it. The **Connect Wallet** button is additive: it needs MetaMask in a real browser. Without an injected wallet it shows `No injected wallet found — install MetaMask to connect.`; with one, it asks the wallet for the signer address and shows it truncated (`0x1234…abcd`). The app never asks for or stores private keys; only a public address is read after the user approves the connection in the wallet.
-
-## How nginx fits
-
-ox configures nginx with `spa = true`: it serves `dist/` from the current release with `try_files $uri $uri/ /index.html`, so deep links fall back to the SPA entry. Only the `[frontend].api_paths` prefixes `/api` and `/health` are proxied to the web process on `127.0.0.1:9116`; everything else is static files.
+`GET /api/greeting` returns the same line. The **Connect Wallet** button needs MetaMask in a real browser. Without an injected wallet it says so; with one, it asks the wallet for the signer address and shows it truncated. The app never asks for or stores private keys.
 
 ## Local development
 
-```bash
-npm install
-npm run dev                                       # Vite dev server
-GREETING_TAG=localtest PORT=9116 node server.js   # API on 127.0.0.1:9116
-GREETING_TAG=localtest npm run build              # bakes GREETING_TAG into dist/
-npm start                                         # node server.js, for the built API
+```sh
+npm ci
+GREETING_TAG=localtest npm run build
+GREETING_TAG=localtest PORT=9116 node server.js
 ```
-
-Pass env inline per the commands above; never commit a real `.env`.
