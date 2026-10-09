@@ -1,6 +1,8 @@
 # oxzoo-web3-vue
 
-An official ox deploy example: a Vue 3 single-page dApp built with Vite, plus a tiny Express API, deployed to a single Ubuntu VPS by the [ox](https://github.com/saurav-codes/vps-ctl) control plane from one `ox.toml` manifest at the repo root. ox runs `npm install` and `npm run build`, serves `dist/` statically through nginx, and runs `node server.js` as a systemd process bound to `127.0.0.1:9116`, with only `/api` and `/health` proxied to it.
+Deployed with [ox](https://deploywithox.com): deploy a repo to your own server with one command, no Docker. [Docs](https://deploywithox.com/docs) · [Guide for this stack](https://deploywithox.com/docs/guides/node)
+
+An official ox deploy example: a Vue 3 single-page dApp built with Vite, plus a tiny Express API, deployed to a single Ubuntu VPS by the [ox](https://deploywithox.com) control plane from one `ox.toml` manifest at the repo root. ox runs `npm install` and `npm run build`, serves `dist/` statically through nginx, and runs `node server.js` as a systemd process bound to `127.0.0.1:9116`, with only `/api` and `/health` proxied to it.
 
 A dApp needs very little on a server: the SPA is static files, the wallet stays client-side (MetaMask injects `window.ethereum` in the visitor's browser; no private key ever reaches the VPS), and the only server-side part is a tiny API that proves the deploy works end to end. The greeting renders without any wallet connected, so headless verification can check the deployment with nothing but curl.
 
